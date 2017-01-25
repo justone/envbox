@@ -13,6 +13,24 @@
 			"path": "github.com/pkg/errors",
 			"revision": "248dadf4e9068a0b3e79f02ed0a610d935de5302",
 			"revisionTime": "2016-10-29T09:36:37Z"
+		},
+		{
+			"checksumSHA1": "Y/FcWB2/xSfX1rRp7HYhktHNw8s=",
+			"path": "golang.org/x/crypto/nacl/secretbox",
+			"revision": "41d678d1df78cd0410143162dff954e6dc09300f",
+			"revisionTime": "2017-01-16T12:25:54Z"
+		},
+		{
+			"checksumSHA1": "1LqFkun1+9z4K7MF8rJi3rzfO/0=",
+			"path": "golang.org/x/crypto/poly1305",
+			"revision": "41d678d1df78cd0410143162dff954e6dc09300f",
+			"revisionTime": "2017-01-16T12:25:54Z"
+		},
+		{
+			"checksumSHA1": "w8PESKJweP+BCAxCYPU1QC08qUU=",
+			"path": "golang.org/x/crypto/salsa20/salsa",
+			"revision": "41d678d1df78cd0410143162dff954e6dc09300f",
+			"revisionTime": "2017-01-16T12:25:54Z"
 		}
 	],
 	"rootPath": "github.com/justone/envbox"

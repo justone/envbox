@@ -2,13 +2,23 @@ package main
 
 import (
 	"bufio"
+	"crypto/rand"
+	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"strings"
 
+	"golang.org/x/crypto/nacl/secretbox"
+
 	"github.com/pkg/errors"
 )
+
+type EnvVar struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
 
 func ReadKey() (string, error) {
 	data, err := ioutil.ReadFile(keyPath)
@@ -44,5 +54,37 @@ func PromptForValue() (string, error) {
 func AddVariable(key, name, value string) error {
 	fmt.Printf("TODO: adding variable %s=%s (key: %s)\n", name, value, key)
 
+	message, err := json.Marshal(EnvVar{name, value})
+	if err != nil {
+		return err
+	}
+
+	var keyBytes [32]byte
+	copy(keyBytes[:], []byte(key)[:32])
+
+	var nonce [24]byte
+	if _, err := io.ReadFull(rand.Reader, nonce[:]); err != nil {
+		panic(err)
+	}
+
+	out := make([]byte, 24)
+	copy(out, nonce[:])
+
+	out = secretbox.Seal(out, message, &nonce, &keyBytes)
+
+	fmt.Println(out)
+
+	return ioutil.WriteFile(fmt.Sprintf("%s.enc", name), out, 0600)
+}
+
+func RunCommandWithEnv(key string, vars, cmd []string) error {
+
+	fmt.Printf("TODO: running %v with vars %v (key: %s)\n", cmd, vars, key)
+
 	return nil
 }
+
+// var pass [32]byte
+// if _, err := io.ReadFull(rand.Reader, pass[:]); err != nil {
+// 	panic(err)
+// }
