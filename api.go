@@ -8,6 +8,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"golang.org/x/crypto/nacl/secretbox"
@@ -52,7 +54,7 @@ func PromptForValue() (string, error) {
 }
 
 func AddVariable(key, name, value string) error {
-	fmt.Printf("TODO: adding variable %s=%s (key: %s)\n", name, value, key)
+	fmt.Printf("adding variable %s=%s (key: %s)\n", name, value, key)
 
 	message, err := json.Marshal(EnvVar{name, value})
 	if err != nil {
@@ -72,16 +74,76 @@ func AddVariable(key, name, value string) error {
 
 	out = secretbox.Seal(out, message, &nonce, &keyBytes)
 
-	fmt.Println(out)
+	// fmt.Println(out)
 
-	return ioutil.WriteFile(fmt.Sprintf("%s.enc", name), out, 0600)
+	return ioutil.WriteFile(fmt.Sprintf("%s.envenc", name), out, 0600)
 }
 
-func RunCommandWithEnv(key string, vars, cmd []string) error {
+func RunCommandWithEnv(key string, varNames, command []string) error {
 
-	fmt.Printf("TODO: running %v with vars %v (key: %s)\n", cmd, vars, key)
+	fmt.Printf("TODO: running %v with vars %v (key: %s)\n", command, varNames, key)
 
-	return nil
+	cmd := exec.Command(command[0], command[1:]...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	hostEnv := os.Environ()
+	vars, _ := LoadEnvVars(key)
+	for _, varName := range varNames {
+		if value, ok := vars[varName]; ok {
+			hostEnv = append(hostEnv, fmt.Sprintf("%s=%s", varName, value))
+		} else {
+			// TODO: handle variable not found
+		}
+	}
+	cmd.Env = hostEnv
+
+	return cmd.Run()
+}
+
+func LoadEnvVars(key string) (map[string]string, error) {
+	vars := make(map[string]string)
+
+	files, err := ioutil.ReadDir(secretPath)
+	if err != nil {
+		return vars, errors.Wrap(err, "unable to read directory")
+	}
+
+	var keyBytes [32]byte
+	copy(keyBytes[:], []byte(key)[:32])
+
+	for _, info := range files {
+		if !info.IsDir() && strings.HasSuffix(info.Name(), ".envenc") {
+			fileName := filepath.Join(secretPath, info.Name())
+			// fmt.Println("Loading file", fileName)
+
+			data, err := ioutil.ReadFile(fileName)
+			if err != nil {
+				return vars, errors.Wrap(err, "unable to read file")
+			}
+
+			nonce := new([24]byte)
+			copy(nonce[:], data[:24])
+
+			if message, ok := secretbox.Open(nil, data[24:], nonce, &keyBytes); ok {
+				// fmt.Println(string(message))
+
+				var envVar EnvVar
+				err := json.Unmarshal(message, &envVar)
+				if err != nil {
+					// ignore
+				}
+
+				vars[envVar.Name] = envVar.Value
+			} else {
+				// ignore
+			}
+
+		}
+	}
+
+	return vars, nil
 }
 
 // var pass [32]byte
