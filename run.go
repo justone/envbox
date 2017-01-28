@@ -24,7 +24,7 @@ func (c *RunCommand) Execute(args []string) error {
 func init() {
 	cmd, err := parser.AddCommand("run", "Run a command.", "", &runCommand)
 
-	cmd.Aliases = append(cmd.Aliases, "a")
+	cmd.Aliases = append(cmd.Aliases, "r")
 
 	if err != nil {
 		fmt.Println(err)
