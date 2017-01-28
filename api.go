@@ -81,7 +81,7 @@ func AddVariable(key, name, value string) error {
 
 func RunCommandWithEnv(key string, varNames, command []string) error {
 
-	fmt.Printf("TODO: running %v with vars %v (key: %s)\n", command, varNames, key)
+	fmt.Printf("running %v with vars %v (key: %s)\n", command, varNames, key)
 
 	cmd := exec.Command(command[0], command[1:]...)
 	cmd.Stdin = os.Stdin
