@@ -23,8 +23,8 @@ func (c *ListCommand) Execute(args []string) error {
 		return errors.Wrap(err, "unable to load vars")
 	}
 
-	for key, value := range vars {
-		fmt.Printf("%s=%s\n", key, value)
+	for name, envVar := range vars {
+		fmt.Printf("%s=%s\n", name, envVar.Value)
 	}
 
 	return nil

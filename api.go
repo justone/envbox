@@ -20,6 +20,7 @@ import (
 type EnvVar struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
+	Path  string `json:"-"`
 }
 
 func ReadKey() (string, error) {
@@ -56,7 +57,7 @@ func PromptForValue() (string, error) {
 func AddVariable(key, name, value string) error {
 	fmt.Printf("adding variable %s=%s (key: %s)\n", name, value, key)
 
-	message, err := json.Marshal(EnvVar{name, value})
+	message, err := json.Marshal(EnvVar{Name: name, Value: value})
 	if err != nil {
 		return err
 	}
@@ -79,6 +80,25 @@ func AddVariable(key, name, value string) error {
 	return ioutil.WriteFile(fmt.Sprintf("%s.envenc", name), out, 0600)
 }
 
+func RemoveVariable(key, name string) error {
+	fmt.Printf("removing variable %s (key: %s)\n", name, key)
+
+	vars, err := LoadEnvVars(key)
+	if err != nil {
+		return errors.Wrap(err, "unable to load env vars")
+	}
+
+	if envVar, ok := vars[name]; ok {
+		err = os.Remove(envVar.Path)
+		if err != nil {
+			return errors.Wrap(err, "unable to remove file")
+		}
+	} else {
+		return fmt.Errorf("variable %s not found", name)
+	}
+	return nil
+}
+
 func RunCommandWithEnv(key string, varNames, command []string) error {
 
 	fmt.Printf("running %v with vars %v (key: %s)\n", command, varNames, key)
@@ -89,10 +109,13 @@ func RunCommandWithEnv(key string, varNames, command []string) error {
 	cmd.Stderr = os.Stderr
 
 	hostEnv := os.Environ()
-	vars, _ := LoadEnvVars(key)
+	vars, err := LoadEnvVars(key)
+	if err != nil {
+		return errors.Wrap(err, "unable to load env vars")
+	}
 	for _, varName := range varNames {
-		if value, ok := vars[varName]; ok {
-			hostEnv = append(hostEnv, fmt.Sprintf("%s=%s", varName, value))
+		if envVar, ok := vars[varName]; ok {
+			hostEnv = append(hostEnv, fmt.Sprintf("%s=%s", varName, envVar.Value))
 		} else {
 			// TODO: handle variable not found
 		}
@@ -102,8 +125,8 @@ func RunCommandWithEnv(key string, varNames, command []string) error {
 	return cmd.Run()
 }
 
-func LoadEnvVars(key string) (map[string]string, error) {
-	vars := make(map[string]string)
+func LoadEnvVars(key string) (map[string]EnvVar, error) {
+	vars := make(map[string]EnvVar)
 
 	files, err := ioutil.ReadDir(secretPath)
 	if err != nil {
@@ -134,8 +157,9 @@ func LoadEnvVars(key string) (map[string]string, error) {
 				if err != nil {
 					// ignore
 				}
+				envVar.Path = fileName
 
-				vars[envVar.Name] = envVar.Value
+				vars[envVar.Name] = envVar
 			} else {
 				// ignore
 			}
