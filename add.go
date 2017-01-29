@@ -13,6 +13,8 @@ type AddCommand struct {
 var addCommand AddCommand
 
 func (c *AddCommand) Execute(args []string) error {
+	// TODO: check for duplicate name
+
 	key, err := ReadKey()
 	if err != nil {
 		return errors.Wrap(err, "unable to read key")
