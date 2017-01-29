@@ -3,6 +3,12 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "K6exl2ouL7d8cR2i378EzZOdRVI=",
+			"path": "github.com/howeyc/gopass",
+			"revision": "bf9dde6d0d2c004a008c27aaee91170c786f6db8",
+			"revisionTime": "2017-01-09T16:22:49Z"
+		},
+		{
 			"checksumSHA1": "KhsRogdBpJZ2jgO35be/eM1qyqc=",
 			"path": "github.com/jessevdk/go-flags",
 			"revision": "4e64e4a4e2552194cf594243e23aa9baf3b4297e",
@@ -29,6 +35,12 @@
 		{
 			"checksumSHA1": "w8PESKJweP+BCAxCYPU1QC08qUU=",
 			"path": "golang.org/x/crypto/salsa20/salsa",
+			"revision": "41d678d1df78cd0410143162dff954e6dc09300f",
+			"revisionTime": "2017-01-16T12:25:54Z"
+		},
+		{
+			"checksumSHA1": "xiderUuvye8Kpn7yX3niiJg32bE=",
+			"path": "golang.org/x/crypto/ssh/terminal",
 			"revision": "41d678d1df78cd0410143162dff954e6dc09300f",
 			"revisionTime": "2017-01-16T12:25:54Z"
 		}

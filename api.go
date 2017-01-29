@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 
 	"golang.org/x/crypto/nacl/secretbox"
 
+	"github.com/howeyc/gopass"
 	"github.com/pkg/errors"
 )
 
@@ -24,6 +26,18 @@ type EnvVar struct {
 }
 
 func ReadKey() (string, error) {
+	if _, err := os.Stat(keyPath); os.IsNotExist(err) {
+		key, err := PromptForKey()
+		if err != nil {
+			return "", errors.Wrap(err, "unable prompt for key")
+		}
+
+		err = StoreKey(key)
+		if err != nil {
+			return "", errors.Wrap(err, "unable to set key")
+		}
+	}
+
 	data, err := ioutil.ReadFile(keyPath)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to read keypath")
@@ -32,6 +46,27 @@ func ReadKey() (string, error) {
 	key := strings.TrimSpace(string(data))
 
 	return key, nil
+}
+
+func StoreKey(key string) error {
+	return ioutil.WriteFile(keyPath, []byte(key), 0600)
+}
+
+func PromptForKey() (string, error) {
+	fmt.Printf("enter key: ")
+
+	key, err := gopass.GetPasswdMasked()
+	if err != nil {
+		if err == gopass.ErrInterrupted {
+			return "", fmt.Errorf("interrupted")
+		} else {
+			return "", errors.Wrap(err, "unable to prompt for key")
+		}
+	}
+
+	// TODO: check that key is valid
+
+	return string(key), nil
 }
 
 func PromptForValue() (string, error) {
@@ -170,7 +205,11 @@ func LoadEnvVars(key string) (map[string]EnvVar, error) {
 	return vars, nil
 }
 
-// var pass [32]byte
-// if _, err := io.ReadFull(rand.Reader, pass[:]); err != nil {
-// 	panic(err)
-// }
+func GenerateNewKey() (string, error) {
+	var pass [32]byte
+	if _, err := io.ReadFull(rand.Reader, pass[:]); err != nil {
+		return "", errors.Wrap(err, "unable to read random")
+	}
+
+	return hex.EncodeToString(pass[:]), nil
+}
