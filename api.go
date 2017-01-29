@@ -112,7 +112,12 @@ func AddVariable(key, name, value string) error {
 
 	// fmt.Println(out)
 
-	return ioutil.WriteFile(fmt.Sprintf("%s.envenc", name), out, 0600)
+	var fname [24]byte
+	if _, err := io.ReadFull(rand.Reader, fname[:]); err != nil {
+		return errors.Wrap(err, "unable to read random")
+	}
+
+	return ioutil.WriteFile(fmt.Sprintf("%s.envenc", hex.EncodeToString(fname[:])), out, 0600)
 }
 
 func RemoveVariable(key, name string) error {
