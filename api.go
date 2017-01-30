@@ -90,7 +90,7 @@ func PromptForValue() (string, error) {
 }
 
 func AddVariable(key, name, value string) error {
-	fmt.Printf("adding variable %s=%s (key: %s)\n", name, value, key)
+	// fmt.Printf("adding variable %s=%s (key: %s)\n", name, value, key)
 
 	message, err := json.Marshal(EnvVar{Name: name, Value: value})
 	if err != nil {
@@ -121,7 +121,7 @@ func AddVariable(key, name, value string) error {
 }
 
 func RemoveVariable(key, name string) error {
-	fmt.Printf("removing variable %s (key: %s)\n", name, key)
+	// fmt.Printf("removing variable %s (key: %s)\n", name, key)
 
 	vars, err := LoadEnvVars(key)
 	if err != nil {
@@ -140,8 +140,7 @@ func RemoveVariable(key, name string) error {
 }
 
 func RunCommandWithEnv(key string, varNames, command []string) error {
-
-	fmt.Printf("running %v with vars %v (key: %s)\n", command, varNames, key)
+	// fmt.Printf("running %v with vars %v (key: %s)\n", command, varNames, key)
 
 	cmd := exec.Command(command[0], command[1:]...)
 	cmd.Stdin = os.Stdin
