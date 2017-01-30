@@ -157,7 +157,7 @@ func RunCommandWithEnv(key string, varNames, command []string) error {
 		if envVar, ok := vars[varName]; ok {
 			hostEnv = append(hostEnv, fmt.Sprintf("%s=%s", varName, envVar.Value))
 		} else {
-			// TODO: handle variable not found
+			fmt.Fprintf(os.Stdout, "unable to find %s\n", varName)
 		}
 	}
 	cmd.Env = hostEnv
