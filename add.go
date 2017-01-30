@@ -13,11 +13,19 @@ type AddCommand struct {
 var addCommand AddCommand
 
 func (c *AddCommand) Execute(args []string) error {
-	// TODO: check for duplicate name
-
 	key, err := ReadKey()
 	if err != nil {
 		return errors.Wrap(err, "unable to read key")
+	}
+
+	// check for duplicate name
+	vars, err := LoadEnvVars(key)
+	if err != nil {
+		return errors.Wrap(err, "unable to load vars")
+	}
+
+	if _, ok := vars[c.Name]; ok {
+		return fmt.Errorf("var %s already exists", c.Name)
 	}
 
 	value, err := PromptForValue()
