@@ -7,7 +7,8 @@ import (
 )
 
 type AddCommand struct {
-	Name string `short:"n" long:"name" description:"Name of environment variable." required:"yes"`
+	Name    string `short:"n" long:"name" description:"Name of environment variable." required:"yes"`
+	Exposed string `short:"e" long:"exposed" description:"Name of exposed variable, if different than the name."`
 }
 
 var addCommand AddCommand
@@ -28,12 +29,17 @@ func (c *AddCommand) Execute(args []string) error {
 		return fmt.Errorf("var %s already exists", c.Name)
 	}
 
+	exposed := c.Exposed
+	if len(c.Exposed) == 0 {
+		exposed = c.Name
+	}
+
 	value, err := PromptForValue()
 	if err != nil {
 		return errors.Wrap(err, "error reading value")
 	}
 
-	return AddVariable(key, c.Name, value)
+	return AddVariable(key, c.Name, exposed, value)
 }
 
 func init() {

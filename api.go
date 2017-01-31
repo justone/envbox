@@ -20,9 +20,10 @@ import (
 )
 
 type EnvVar struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
-	Path  string `json:"-"`
+	Name    string `json:"name"`
+	Exposed string `json:"exposed"`
+	Value   string `json:"value"`
+	Path    string `json:"-"`
 }
 
 func ReadKey() (string, error) {
@@ -89,10 +90,10 @@ func PromptForValue() (string, error) {
 	return strings.TrimSpace(value), nil
 }
 
-func AddVariable(key, name, value string) error {
+func AddVariable(key, name, exposed, value string) error {
 	// fmt.Printf("adding variable %s=%s (key: %s)\n", name, value, key)
 
-	message, err := json.Marshal(EnvVar{Name: name, Value: value})
+	message, err := json.Marshal(EnvVar{Name: name, Exposed: exposed, Value: value})
 	if err != nil {
 		return err
 	}
@@ -154,7 +155,7 @@ func RunCommandWithEnv(key string, varNames, command []string) error {
 	}
 	for _, varName := range varNames {
 		if envVar, ok := vars[varName]; ok {
-			hostEnv = append(hostEnv, fmt.Sprintf("%s=%s", varName, envVar.Value))
+			hostEnv = append(hostEnv, fmt.Sprintf("%s=%s", envVar.Exposed, envVar.Value))
 		} else {
 			fmt.Fprintf(os.Stdout, "unable to find %s\n", varName)
 		}
