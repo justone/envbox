@@ -13,12 +13,12 @@ type RunCommand struct {
 var runCommand RunCommand
 
 func (c *RunCommand) Execute(args []string) error {
-	key, err := ReadKey()
+	box, err := NewEnvBox()
 	if err != nil {
-		return errors.Wrap(err, "unable to read key")
+		return errors.Wrap(err, "unable to create env box")
 	}
 
-	return RunCommandWithEnv(key, c.Vars, args)
+	return box.RunCommandWithEnv(c.Vars, args)
 }
 
 func init() {

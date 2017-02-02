@@ -13,12 +13,12 @@ type RemoveCommand struct {
 var removeCommand RemoveCommand
 
 func (c *RemoveCommand) Execute(args []string) error {
-	key, err := ReadKey()
+	box, err := NewEnvBox()
 	if err != nil {
-		return errors.Wrap(err, "unable to read key")
+		return errors.Wrap(err, "unable to create env box")
 	}
 
-	return RemoveVariable(key, c.Name)
+	return box.RemoveVariable(c.Name)
 }
 
 func init() {

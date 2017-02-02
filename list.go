@@ -13,27 +13,12 @@ type ListCommand struct {
 var listCommand ListCommand
 
 func (c *ListCommand) Execute(args []string) error {
-	key, err := ReadKey()
+	box, err := NewEnvBox()
 	if err != nil {
-		return errors.Wrap(err, "unable to read key")
+		return errors.Wrap(err, "unable to create env box")
 	}
 
-	vars, err := LoadEnvVars(key)
-	if err != nil {
-		return errors.Wrap(err, "unable to load vars")
-	}
-
-	for name, envVar := range vars {
-		// TODO: figure out a better way to list these
-		fmt.Print(name)
-		if envVar.Exposed != envVar.Name {
-			fmt.Printf("(%s)", envVar.Exposed)
-		}
-		fmt.Printf("=%s", envVar.Value)
-		fmt.Println()
-	}
-
-	return nil
+	return box.ListVariables()
 }
 
 func init() {

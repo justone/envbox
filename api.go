@@ -26,72 +26,53 @@ type EnvVar struct {
 	Path    string `json:"-"`
 }
 
-func ReadKey() (string, error) {
-	if _, err := os.Stat(keyPath); os.IsNotExist(err) {
-		key, err := PromptForKey()
+type EnvBox struct {
+	System
+	// Config
+}
+
+func NewEnvBox() (*EnvBox, error) {
+	return &EnvBox{
+		System: &DefaultSystem{},
+	}, nil
+}
+
+func (box *EnvBox) AddVariable(name, exposed, file string) error {
+
+	var err error
+
+	key, err := box.ReadKey()
+	if err != nil {
+		return errors.Wrap(err, "unable to read key")
+	}
+
+	// check for duplicate name
+	vars, err := box.LoadEnvVars(key)
+	if err != nil {
+		return errors.Wrap(err, "unable to load vars")
+	}
+
+	if _, ok := vars[name]; ok {
+		return fmt.Errorf("var %s already exists", name)
+	}
+
+	if len(exposed) == 0 {
+		exposed = name
+	}
+
+	var value string
+	if len(file) > 0 {
+		data, err := ioutil.ReadFile(file)
 		if err != nil {
-			return "", errors.Wrap(err, "unable prompt for key")
+			return errors.Wrap(err, "error reading file")
 		}
-
-		err = StoreKey(key)
+		value = strings.TrimSpace(string(data))
+	} else {
+		value, err = box.PromptForValue()
 		if err != nil {
-			return "", errors.Wrap(err, "unable to set key")
+			return errors.Wrap(err, "error reading value")
 		}
 	}
-
-	data, err := ioutil.ReadFile(keyPath)
-	if err != nil {
-		return "", errors.Wrap(err, "unable to read keypath")
-	}
-
-	key := strings.TrimSpace(string(data))
-
-	return key, nil
-}
-
-func StoreKey(key string) error {
-	return ioutil.WriteFile(keyPath, []byte(key), 0600)
-}
-
-func PromptForKey() (string, error) {
-	fmt.Printf("enter key: ")
-
-	key, err := gopass.GetPasswdMasked()
-	if err != nil {
-		if err == gopass.ErrInterrupted {
-			return "", fmt.Errorf("interrupted")
-		} else {
-			return "", errors.Wrap(err, "unable to prompt for key")
-		}
-	}
-
-	// TODO: check that key is valid
-
-	return string(key), nil
-}
-
-func PromptForValue() (string, error) {
-	tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to open /dev/tty")
-	}
-
-	fmt.Fprintf(tty, "value: ")
-	value, err := bufio.NewReader(tty).ReadString('\n')
-	if err != nil {
-		return "", errors.Wrap(err, "unable to read value")
-	}
-
-	err = tty.Close()
-	if err != nil {
-		return "", err
-	}
-
-	return strings.TrimSpace(value), nil
-}
-
-func AddVariable(key, name, exposed, value string) error {
-	// fmt.Printf("adding variable %s=%s (key: %s)\n", name, value, key)
 
 	message, err := json.Marshal(EnvVar{Name: name, Exposed: exposed, Value: value})
 	if err != nil {
@@ -118,57 +99,105 @@ func AddVariable(key, name, exposed, value string) error {
 		return errors.Wrap(err, "unable to read random")
 	}
 
-	return ioutil.WriteFile(fmt.Sprintf("%s.envenc", hex.EncodeToString(fname[:])), out, 0600)
-}
-
-func RemoveVariable(key, name string) error {
-	// fmt.Printf("removing variable %s (key: %s)\n", name, key)
-
-	vars, err := LoadEnvVars(key)
+	dataPath, err := box.DataPath()
 	if err != nil {
-		return errors.Wrap(err, "unable to load env vars")
+		return err
 	}
 
-	if envVar, ok := vars[name]; ok {
-		err = os.Remove(envVar.Path)
+	return ioutil.WriteFile(filepath.Join(dataPath, fmt.Sprintf("%s.envenc", hex.EncodeToString(fname[:]))), out, 0600)
+}
+
+func (box *EnvBox) keyPath() (string, error) {
+	dataPath, err := box.DataPath()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(dataPath, "secret.key"), nil
+}
+
+func (box *EnvBox) ReadKey() (string, error) {
+	keyPath, err := box.keyPath()
+	if err != nil {
+		return "", errors.Wrap(err, "unable to get key path")
+	}
+
+	if !box.FileExists(keyPath) {
+		key, err := box.PromptForKey()
 		if err != nil {
-			return errors.Wrap(err, "unable to remove file")
+			return "", errors.Wrap(err, "unable prompt for key")
 		}
-	} else {
-		return fmt.Errorf("variable %s not found", name)
+
+		err = box.StoreKey(key)
+		if err != nil {
+			return "", errors.Wrap(err, "unable to set key")
+		}
 	}
-	return nil
-}
 
-func RunCommandWithEnv(key string, varNames, command []string) error {
-	// fmt.Printf("running %v with vars %v (key: %s)\n", command, varNames, key)
-
-	cmd := exec.Command(command[0], command[1:]...)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	hostEnv := os.Environ()
-	vars, err := LoadEnvVars(key)
+	data, err := ioutil.ReadFile(keyPath)
 	if err != nil {
-		return errors.Wrap(err, "unable to load env vars")
+		return "", errors.Wrap(err, "unable to read keypath")
 	}
-	for _, varName := range varNames {
-		if envVar, ok := vars[varName]; ok {
-			hostEnv = append(hostEnv, fmt.Sprintf("%s=%s", envVar.Exposed, envVar.Value))
-		} else {
-			fmt.Fprintf(os.Stdout, "unable to find %s\n", varName)
-		}
-	}
-	cmd.Env = hostEnv
 
-	return cmd.Run()
+	key := strings.TrimSpace(string(data))
+
+	return key, nil
 }
 
-func LoadEnvVars(key string) (map[string]EnvVar, error) {
+func (box *EnvBox) PromptForKey() (string, error) {
+	fmt.Printf("enter key: ")
+
+	key, err := gopass.GetPasswdMasked()
+	if err != nil {
+		if err == gopass.ErrInterrupted {
+			return "", fmt.Errorf("interrupted")
+		} else {
+			return "", errors.Wrap(err, "unable to prompt for key")
+		}
+	}
+
+	// TODO: check that key is valid
+
+	return string(key), nil
+}
+
+func (box *EnvBox) PromptForValue() (string, error) {
+	tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to open /dev/tty")
+	}
+
+	fmt.Fprintf(tty, "value: ")
+	value, err := bufio.NewReader(tty).ReadString('\n')
+	if err != nil {
+		return "", errors.Wrap(err, "unable to read value")
+	}
+
+	err = tty.Close()
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(value), nil
+}
+
+func (box *EnvBox) StoreKey(key string) error {
+	keyPath, err := box.keyPath()
+	if err != nil {
+		return errors.Wrap(err, "unable to get key path")
+	}
+
+	return ioutil.WriteFile(keyPath, []byte(key), 0600)
+}
+
+func (box *EnvBox) LoadEnvVars(key string) (map[string]EnvVar, error) {
 	vars := make(map[string]EnvVar)
 
-	files, err := ioutil.ReadDir(secretPath)
+	dataPath, err := box.DataPath()
+	if err != nil {
+		return vars, errors.Wrap(err, "unable to get data path")
+	}
+	files, err := ioutil.ReadDir(dataPath)
 	if err != nil {
 		return vars, errors.Wrap(err, "unable to read directory")
 	}
@@ -178,7 +207,7 @@ func LoadEnvVars(key string) (map[string]EnvVar, error) {
 
 	for _, info := range files {
 		if !info.IsDir() && strings.HasSuffix(info.Name(), ".envenc") {
-			fileName := filepath.Join(secretPath, info.Name())
+			fileName := filepath.Join(dataPath, info.Name())
 			// fmt.Println("Loading file", fileName)
 
 			data, err := ioutil.ReadFile(fileName)
@@ -210,11 +239,101 @@ func LoadEnvVars(key string) (map[string]EnvVar, error) {
 	return vars, nil
 }
 
-func GenerateNewKey() (string, error) {
-	var pass [32]byte
-	if _, err := io.ReadFull(rand.Reader, pass[:]); err != nil {
-		return "", errors.Wrap(err, "unable to read random")
+func (box *EnvBox) ListVariables() error {
+	key, err := box.ReadKey()
+	if err != nil {
+		return errors.Wrap(err, "unable to read key")
 	}
 
-	return hex.EncodeToString(pass[:]), nil
+	vars, err := box.LoadEnvVars(key)
+	if err != nil {
+		return errors.Wrap(err, "unable to load vars")
+	}
+
+	for name, envVar := range vars {
+		// TODO: figure out a better way to list these
+		fmt.Print(name)
+		if envVar.Exposed != envVar.Name {
+			fmt.Printf("(%s)", envVar.Exposed)
+		}
+		fmt.Printf("=%s", envVar.Value)
+		fmt.Println()
+	}
+
+	return nil
+}
+
+func (box *EnvBox) GenerateNewKey(set bool) error {
+	var pass [32]byte
+	if _, err := io.ReadFull(rand.Reader, pass[:]); err != nil {
+		return errors.Wrap(err, "unable to read random")
+	}
+
+	key := hex.EncodeToString(pass[:])
+	fmt.Println(key)
+
+	if set {
+		// TODO: warn when overriding existing key
+		return box.StoreKey(key)
+	}
+	return nil
+}
+
+func (box *EnvBox) PromptAndStoreKey() error {
+	key, err := box.PromptForKey()
+	if err != nil {
+		return errors.Wrap(err, "unable to prompt for key")
+	}
+
+	return box.StoreKey(key)
+}
+
+func (box *EnvBox) RemoveVariable(name string) error {
+	key, err := box.ReadKey()
+	if err != nil {
+		return errors.Wrap(err, "unable to read key")
+	}
+
+	vars, err := box.LoadEnvVars(key)
+	if err != nil {
+		return errors.Wrap(err, "unable to load env vars")
+	}
+
+	if envVar, ok := vars[name]; ok {
+		err = os.Remove(envVar.Path)
+		if err != nil {
+			return errors.Wrap(err, "unable to remove file")
+		}
+	} else {
+		return fmt.Errorf("variable %s not found", name)
+	}
+	return nil
+}
+
+func (box *EnvBox) RunCommandWithEnv(varNames, command []string) error {
+	key, err := box.ReadKey()
+	if err != nil {
+		return errors.Wrap(err, "unable to read key")
+	}
+
+	cmd := exec.Command(command[0], command[1:]...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	hostEnv := os.Environ()
+	vars, err := box.LoadEnvVars(key)
+	if err != nil {
+		return errors.Wrap(err, "unable to load env vars")
+	}
+	for _, varName := range varNames {
+		if envVar, ok := vars[varName]; ok {
+			hostEnv = append(hostEnv, fmt.Sprintf("%s=%s", envVar.Exposed, envVar.Value))
+		} else {
+			fmt.Fprintf(os.Stdout, "unable to find %s\n", varName)
+		}
+	}
+	cmd.Env = hostEnv
+
+	return cmd.Run()
 }

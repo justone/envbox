@@ -18,26 +18,21 @@ type KeyCommand struct {
 }
 
 func (r *GenerateKeyCommand) Execute(args []string) error {
-	key, err := GenerateNewKey()
+	box, err := NewEnvBox()
 	if err != nil {
-		return errors.Wrap(err, "unable to generate key")
+		return errors.Wrap(err, "unable to create env box")
 	}
-	fmt.Println(key)
 
-	if r.Set {
-		// TODO: warn when overriding existing key
-		return StoreKey(key)
-	}
-	return nil
+	return box.GenerateNewKey(r.Set)
 }
 
 func (r *SetKeyCommand) Execute(args []string) error {
-	key, err := PromptForKey()
+	box, err := NewEnvBox()
 	if err != nil {
-		return errors.Wrap(err, "unable to prompt for key")
+		return errors.Wrap(err, "unable to create env box")
 	}
 
-	return StoreKey(key)
+	return box.PromptAndStoreKey()
 }
 
 func init() {
