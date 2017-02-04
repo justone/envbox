@@ -7,7 +7,8 @@ import (
 )
 
 type RunCommand struct {
-	Vars []string `short:"e" long:"env" description:"Environment variables to expose" required:"yes"`
+	Vars  []string `short:"e" long:"env" description:"Environment variables to expose" required:"yes"`
+	Shell bool     `short:"s" long:"shell" description:"Wrap execution in a call to shell -c ''"`
 }
 
 var runCommand RunCommand
@@ -18,7 +19,7 @@ func (c *RunCommand) Execute(args []string) error {
 		return errors.Wrap(err, "unable to create env box")
 	}
 
-	return box.RunCommandWithEnv(c.Vars, args)
+	return box.RunCommandWithEnv(c.Vars, c.Shell, args)
 }
 
 func init() {

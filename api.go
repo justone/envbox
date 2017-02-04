@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	shellquote "github.com/kballard/go-shellquote"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/nacl/secretbox"
 )
@@ -292,11 +293,16 @@ func (box *EnvBox) RemoveVariable(name string) error {
 	return nil
 }
 
-func (box *EnvBox) RunCommandWithEnv(varNames, command []string) error {
+func (box *EnvBox) RunCommandWithEnv(varNames []string, shell bool, command []string) error {
 	key, err := box.ReadKey()
 	if err != nil {
 		return errors.Wrap(err, "unable to read key")
 	}
+
+	if shell {
+		command = []string{"/bin/sh", "-c", shellquote.Join(command...)}
+	}
+	fmt.Println(command)
 
 	hostEnv := os.Environ()
 	vars, err := box.LoadEnvVars(key)
