@@ -9,7 +9,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -316,11 +315,6 @@ func (box *EnvBox) RunCommandWithEnv(varNames, command []string) error {
 		return errors.Wrap(err, "unable to read key")
 	}
 
-	cmd := exec.Command(command[0], command[1:]...)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
 	hostEnv := os.Environ()
 	vars, err := box.LoadEnvVars(key)
 	if err != nil {
@@ -333,7 +327,6 @@ func (box *EnvBox) RunCommandWithEnv(varNames, command []string) error {
 			fmt.Fprintf(os.Stdout, "unable to find %s\n", varName)
 		}
 	}
-	cmd.Env = hostEnv
 
-	return cmd.Run()
+	return box.ExecCommandWithEnv(command[0], command[1:], hostEnv)
 }
