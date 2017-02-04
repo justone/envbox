@@ -12,9 +12,12 @@ type GenerateKeyCommand struct {
 
 type SetKeyCommand struct{}
 
+type ShowKeyCommand struct{}
+
 type KeyCommand struct {
 	Generate GenerateKeyCommand `command:"generate" alias:"gen" description:"Generate new key."`
 	Set      SetKeyCommand      `command:"set" description:"Set key."`
+	Show     ShowKeyCommand     `command:"show" description:"Show key."`
 }
 
 func (r *GenerateKeyCommand) Execute(args []string) error {
@@ -33,6 +36,15 @@ func (r *SetKeyCommand) Execute(args []string) error {
 	}
 
 	return box.PromptAndStoreKey()
+}
+
+func (r *ShowKeyCommand) Execute(args []string) error {
+	box, err := NewEnvBox()
+	if err != nil {
+		return errors.Wrap(err, "unable to create env box")
+	}
+
+	return box.ShowKey()
 }
 
 func init() {

@@ -287,6 +287,17 @@ func (box *EnvBox) PromptAndStoreKey() error {
 	return box.StoreKey(key)
 }
 
+func (box *EnvBox) ShowKey() error {
+	key, err := box.ReadKey()
+	if err != nil {
+		return errors.Wrap(err, "unable to read key")
+	}
+
+	fmt.Println(key)
+
+	return nil
+}
+
 func (box *EnvBox) RemoveVariable(name string) error {
 	key, err := box.ReadKey()
 	if err != nil {
