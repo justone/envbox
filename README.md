@@ -28,7 +28,9 @@ Generate and set a key:
 $ envbox key generate --set
 ```
 
-## 3. Store an environment variable
+# Usage
+
+## Store an environment variable
 
 ```
 $ envbox add -n GITHUB_TOKEN
@@ -37,7 +39,7 @@ $ envbox ls
 GITHUB_TOKEN=abcabcabcabcabc
 ```
 
-## 4. Run commands that need those environment variables
+## Run commands that need those environment variables
 
 Envbox will add the variable to the environment and then run the command.
 
@@ -50,4 +52,10 @@ For ease of use, set up an alias.
 ```
 $ alias some-command="envbox run -e GITHUB_TOKEN -- some-command"
 $ some-command --that needs --github authentication
+```
+
+To run a command that has an environment variable as an argument, quote it and run through bash:
+
+```
+$ envbox run -e GITHUB_TOKEN -- bash -c 'some-command --that needs --github $GITHUB_TOKEN'
 ```
