@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestKeyStore(t *testing.T) {
+func TestStoreKey(t *testing.T) {
 	assert := assert.New(t)
 
 	box, tu := newTestBox()
