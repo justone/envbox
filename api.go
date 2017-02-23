@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -12,10 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"golang.org/x/crypto/nacl/secretbox"
-
-	"github.com/howeyc/gopass"
 	"github.com/pkg/errors"
+	"golang.org/x/crypto/nacl/secretbox"
 )
 
 type EnvVar struct {
@@ -27,12 +24,14 @@ type EnvVar struct {
 
 type EnvBox struct {
 	System
+	Prompter
 	// Config
 }
 
 func NewEnvBox() (*EnvBox, error) {
 	return &EnvBox{
-		System: &DefaultSystem{},
+		System:   &DefaultSystem{},
+		Prompter: &DefaultPrompter{},
 	}, nil
 }
 
@@ -67,7 +66,7 @@ func (box *EnvBox) AddVariable(name, exposed, file string) error {
 		}
 		value = strings.TrimSpace(string(data))
 	} else {
-		value, err = box.PromptForValue()
+		value, err = box.PromptFor("value: ")
 		if err != nil {
 			return errors.Wrap(err, "error reading value")
 		}
@@ -144,40 +143,15 @@ func (box *EnvBox) ReadKey() (string, error) {
 }
 
 func (box *EnvBox) PromptForKey() (string, error) {
-	fmt.Printf("enter key: ")
 
-	key, err := gopass.GetPasswdMasked()
+	key, err := box.PromptMasked("enter key: ")
 	if err != nil {
-		if err == gopass.ErrInterrupted {
-			return "", fmt.Errorf("interrupted")
-		} else {
-			return "", errors.Wrap(err, "unable to prompt for key")
-		}
+		return "", errors.Wrap(err, "unable to prompt for key")
 	}
 
 	// TODO: check that key is valid
 
-	return string(key), nil
-}
-
-func (box *EnvBox) PromptForValue() (string, error) {
-	tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to open /dev/tty")
-	}
-
-	fmt.Fprintf(tty, "value: ")
-	value, err := bufio.NewReader(tty).ReadString('\n')
-	if err != nil {
-		return "", errors.Wrap(err, "unable to read value")
-	}
-
-	err = tty.Close()
-	if err != nil {
-		return "", err
-	}
-
-	return strings.TrimSpace(value), nil
+	return key, nil
 }
 
 func (box *EnvBox) StoreKey(key string) error {
