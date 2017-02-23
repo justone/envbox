@@ -25,6 +25,7 @@ type EnvVar struct {
 type EnvBox struct {
 	System
 	Prompter
+	io.Writer
 	// Config
 }
 
@@ -32,6 +33,7 @@ func NewEnvBox() (*EnvBox, error) {
 	return &EnvBox{
 		System:   &DefaultSystem{},
 		Prompter: &DefaultPrompter{},
+		Writer:   os.Stdout,
 	}, nil
 }
 
@@ -89,8 +91,6 @@ func (box *EnvBox) AddVariable(name, exposed, file string) error {
 	copy(out, nonce[:])
 
 	out = secretbox.Seal(out, message, &nonce, &keyBytes)
-
-	// fmt.Println(out)
 
 	var fname [24]byte
 	if _, err := io.ReadFull(rand.Reader, fname[:]); err != nil {
@@ -181,7 +181,6 @@ func (box *EnvBox) LoadEnvVars(key string) (map[string]EnvVar, error) {
 	for _, info := range files {
 		if !info.IsDir() && strings.HasSuffix(info.Name(), ".envenc") {
 			fileName := filepath.Join(dataPath, info.Name())
-			// fmt.Println("Loading file", fileName)
 
 			data, err := ioutil.ReadFile(fileName)
 			if err != nil {
@@ -192,7 +191,6 @@ func (box *EnvBox) LoadEnvVars(key string) (map[string]EnvVar, error) {
 			copy(nonce[:], data[:24])
 
 			if message, ok := secretbox.Open(nil, data[24:], nonce, &keyBytes); ok {
-				// fmt.Println(string(message))
 
 				var envVar EnvVar
 				err := json.Unmarshal(message, &envVar)
@@ -225,12 +223,12 @@ func (box *EnvBox) ListVariables() error {
 
 	for name, envVar := range vars {
 		// TODO: figure out a better way to list these
-		fmt.Print(name)
+		fmt.Fprintf(box.Writer, name)
 		if envVar.Exposed != envVar.Name {
-			fmt.Printf("(%s)", envVar.Exposed)
+			fmt.Fprintf(box.Writer, "(%s)", envVar.Exposed)
 		}
-		fmt.Printf("=%s", envVar.Value)
-		fmt.Println()
+		fmt.Fprintf(box.Writer, "=%s", envVar.Value)
+		fmt.Fprintf(box.Writer, "\n")
 	}
 
 	return nil
@@ -243,7 +241,7 @@ func (box *EnvBox) GenerateNewKey(set bool) error {
 	}
 
 	key := hex.EncodeToString(pass[:])
-	fmt.Println(key)
+	fmt.Fprintf(box.Writer, "%s\n", key)
 
 	if set {
 		// TODO: warn when overriding existing key
@@ -267,7 +265,7 @@ func (box *EnvBox) ShowKey() error {
 		return errors.Wrap(err, "unable to read key")
 	}
 
-	fmt.Println(key)
+	fmt.Fprintf(box.Writer, "%s\n", key)
 
 	return nil
 }
