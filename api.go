@@ -298,18 +298,42 @@ func (box *EnvBox) RunCommandWithEnv(varNames, command []string) error {
 		return errors.Wrap(err, "unable to read key")
 	}
 
-	hostEnv := os.Environ()
 	vars, err := box.LoadEnvVars(key)
 	if err != nil {
 		return errors.Wrap(err, "unable to load env vars")
 	}
+
+	var exposeVars []EnvVar
 	for _, varName := range varNames {
 		if envVar, ok := vars[varName]; ok {
-			hostEnv = append(hostEnv, fmt.Sprintf("%s=%s", envVar.Exposed, envVar.Value))
+			exposeVars = append(exposeVars, envVar)
 		} else {
 			fmt.Fprintf(os.Stdout, "unable to find %s\n", varName)
 		}
 	}
 
-	return box.ExecCommandWithEnv(command[0], command[1:], hostEnv)
+	var useEnv []string
+
+	hostEnv := os.Environ()
+	for _, hostVar := range hostEnv {
+		conflictFound := false
+		for _, expVar := range exposeVars {
+			if strings.HasPrefix(hostVar, fmt.Sprintf("%s=", expVar.Exposed)) {
+				conflictFound = true
+			}
+		}
+
+		if conflictFound {
+			fmt.Fprintf(os.Stdout, "skipping conflict: '%s'\n", hostVar)
+		} else {
+			useEnv = append(useEnv, hostVar)
+		}
+	}
+
+	for _, expVar := range exposeVars {
+		useEnv = append(useEnv, fmt.Sprintf("%s=%s", expVar.Exposed, expVar.Value))
+	}
+	fmt.Println(useEnv)
+
+	return box.ExecCommandWithEnv(command[0], command[1:], useEnv)
 }
