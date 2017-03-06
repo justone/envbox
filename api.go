@@ -323,9 +323,7 @@ func (box *EnvBox) RunCommandWithEnv(varNames, command []string) error {
 			}
 		}
 
-		if conflictFound {
-			fmt.Fprintf(os.Stdout, "skipping conflict: '%s'\n", hostVar)
-		} else {
+		if !conflictFound {
 			useEnv = append(useEnv, hostVar)
 		}
 	}
@@ -333,7 +331,6 @@ func (box *EnvBox) RunCommandWithEnv(varNames, command []string) error {
 	for _, expVar := range exposeVars {
 		useEnv = append(useEnv, fmt.Sprintf("%s=%s", expVar.Exposed, expVar.Value))
 	}
-	fmt.Println(useEnv)
 
 	return box.ExecCommandWithEnv(command[0], command[1:], useEnv)
 }
