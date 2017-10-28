@@ -16,10 +16,27 @@ import (
 )
 
 type EnvVar struct {
-	Name    string `json:"name"`
-	Exposed string `json:"exposed"`
-	Value   string `json:"value"`
-	Path    string `json:"-"`
+	// Name is what the user uses to refer to the variables, defaults to the
+	// same as the name of the environment variable
+	Name string `json:"name"`
+
+	// LegacyExposed is the name of the variable to expose.  Early versions of
+	// envbox only supported one variable per name, and this is where it was
+	// stored.  When the old format is loaded, this is moved to the Vars map
+	LegacyExposed string `json:"exposed"`
+
+	// LegacyValue is the value of the variable.  Early versions of envbox only
+	// supported one variable per name, and this is where its value was stored.
+	// When the old format is loaded, this is moved to the Vars map
+	LegacyValue string `json:"value"`
+
+	// Path is the name of the underlying file that the data is stored in.  It
+	// isn't present in the JSON data.
+	Path string `json:"-"`
+
+	// Vars holds the key/value pairs to expose as environment variables when
+	// running commands.
+	Vars map[string]string
 }
 
 type EnvBox struct {
@@ -37,7 +54,7 @@ func NewEnvBox() (*EnvBox, error) {
 	}, nil
 }
 
-func (box *EnvBox) AddVariable(name, exposed, file string) error {
+func (box *EnvBox) AddVariable(name, exposed, file string, multiple bool) error {
 
 	var err error
 
@@ -74,7 +91,31 @@ func (box *EnvBox) AddVariable(name, exposed, file string) error {
 		}
 	}
 
-	message, err := json.Marshal(EnvVar{Name: name, Exposed: exposed, Value: value})
+	newVars := map[string]string{exposed: value}
+
+	if multiple {
+
+		fmt.Fprintf(box.Writer, "enter additional variables; emtpy name to finish\n")
+
+		for {
+			varName, err := box.PromptFor("name: ")
+			if err != nil {
+				return errors.Wrap(err, "error reading name")
+			}
+			if len(varName) == 0 {
+				break
+			}
+
+			varValue, err := box.PromptFor("value: ")
+			if err != nil {
+				return errors.Wrap(err, "error reading value")
+			}
+
+			newVars[varName] = varValue
+		}
+	}
+
+	message, err := json.Marshal(EnvVar{Name: name, Vars: newVars})
 	if err != nil {
 		return err
 	}
@@ -199,6 +240,10 @@ func (box *EnvBox) LoadEnvVars(key string) (map[string]EnvVar, error) {
 				}
 				envVar.Path = fileName
 
+				if len(envVar.LegacyExposed) > 0 {
+					envVar.Vars = map[string]string{envVar.LegacyExposed: envVar.LegacyValue}
+				}
+
 				vars[envVar.Name] = envVar
 			} else {
 				// ignore
@@ -224,10 +269,14 @@ func (box *EnvBox) ListVariables() error {
 	for name, envVar := range vars {
 		// TODO: figure out a better way to list these
 		fmt.Fprintf(box.Writer, name)
-		if envVar.Exposed != envVar.Name {
-			fmt.Fprintf(box.Writer, "(%s)", envVar.Exposed)
+		fmt.Fprintf(box.Writer, ": ")
+
+		varNames := []string{}
+		for k, v := range envVar.Vars {
+			varNames = append(varNames, fmt.Sprintf("%s=%s", k, v))
 		}
-		fmt.Fprintf(box.Writer, "=%s", envVar.Value)
+
+		fmt.Fprintf(box.Writer, "%s", strings.Join(varNames, ", "))
 		fmt.Fprintf(box.Writer, "\n")
 	}
 
@@ -318,8 +367,10 @@ func (box *EnvBox) RunCommandWithEnv(varNames, command []string) error {
 	for _, hostVar := range hostEnv {
 		conflictFound := false
 		for _, expVar := range exposeVars {
-			if strings.HasPrefix(hostVar, fmt.Sprintf("%s=", expVar.Exposed)) {
-				conflictFound = true
+			for exposed, _ := range expVar.Vars {
+				if strings.HasPrefix(hostVar, fmt.Sprintf("%s=", exposed)) {
+					conflictFound = true
+				}
 			}
 		}
 
@@ -329,7 +380,9 @@ func (box *EnvBox) RunCommandWithEnv(varNames, command []string) error {
 	}
 
 	for _, expVar := range exposeVars {
-		useEnv = append(useEnv, fmt.Sprintf("%s=%s", expVar.Exposed, expVar.Value))
+		for exposed, value := range expVar.Vars {
+			useEnv = append(useEnv, fmt.Sprintf("%s=%s", exposed, value))
+		}
 	}
 
 	return box.ExecCommandWithEnv(command[0], command[1:], useEnv)
