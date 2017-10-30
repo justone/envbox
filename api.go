@@ -272,8 +272,8 @@ func (box *EnvBox) ListVariables() error {
 		fmt.Fprintf(box.Writer, ": ")
 
 		varNames := []string{}
-		for k, v := range envVar.Vars {
-			varNames = append(varNames, fmt.Sprintf("%s=%s", k, v))
+		for k, _ := range envVar.Vars {
+			varNames = append(varNames, fmt.Sprintf("%s", k))
 		}
 
 		fmt.Fprintf(box.Writer, "%s", strings.Join(varNames, ", "))
@@ -319,7 +319,7 @@ func (box *EnvBox) ShowKey() error {
 	return nil
 }
 
-func (box *EnvBox) RemoveVariable(name string) error {
+func (box *EnvBox) withFoundKey(name string, fun func(EnvVar) error) error {
 	key, err := box.ReadKey()
 	if err != nil {
 		return errors.Wrap(err, "unable to read key")
@@ -331,14 +331,42 @@ func (box *EnvBox) RemoveVariable(name string) error {
 	}
 
 	if envVar, ok := vars[name]; ok {
-		err = os.Remove(envVar.Path)
-		if err != nil {
-			return errors.Wrap(err, "unable to remove file")
-		}
+		return fun(envVar)
 	} else {
 		return fmt.Errorf("variable %s not found", name)
 	}
 	return nil
+}
+
+func (box *EnvBox) ShowVariable(name string) error {
+	return box.withFoundKey(name, func(envVar EnvVar) error {
+		fmt.Fprintf(box.Writer, "name: %s\n", envVar.Name)
+		fmt.Fprintf(box.Writer, "vars:\n")
+		for k, v := range envVar.Vars {
+			fmt.Fprintf(box.Writer, "  %s: %s\n", k, v)
+		}
+		return nil
+	})
+}
+
+func (box *EnvBox) ExportVariable(name string) error {
+	return box.withFoundKey(name, func(envVar EnvVar) error {
+		for k, v := range envVar.Vars {
+			// TODO: better value escaping
+			fmt.Fprintf(box.Writer, "export %s=%q\n", k, v)
+		}
+		return nil
+	})
+}
+
+func (box *EnvBox) RemoveVariable(name string) error {
+	return box.withFoundKey(name, func(envVar EnvVar) error {
+		err := os.Remove(envVar.Path)
+		if err != nil {
+			return errors.Wrap(err, "unable to remove file")
+		}
+		return nil
+	})
 }
 
 func (box *EnvBox) RunCommandWithEnv(varNames, command []string) error {
