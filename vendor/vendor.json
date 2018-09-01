@@ -3,6 +3,25 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "OFu4xJEIjiI8Suu+j/gabfp+y6Q=",
+			"origin": "github.com/stretchr/testify/vendor/github.com/davecgh/go-spew/spew",
+			"path": "github.com/davecgh/go-spew/spew",
+			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
+			"revisionTime": "2017-01-30T11:31:45Z"
+		},
+		{
+			"checksumSHA1": "C6fVdKDanwFYGc+RUtKXRVCZ/J8=",
+			"path": "github.com/docker/docker-credential-helpers/client",
+			"revision": "71779cf7f595bf47f5a56d0629ce044e59b1cffa",
+			"revisionTime": "2017-03-22T08:53:49Z"
+		},
+		{
+			"checksumSHA1": "aTUVnlChP1/Bg7w8lpUBjLVx7Oc=",
+			"path": "github.com/docker/docker-credential-helpers/credentials",
+			"revision": "71779cf7f595bf47f5a56d0629ce044e59b1cffa",
+			"revisionTime": "2017-03-22T08:53:49Z"
+		},
+		{
 			"checksumSHA1": "K6exl2ouL7d8cR2i378EzZOdRVI=",
 			"path": "github.com/howeyc/gopass",
 			"revision": "bf9dde6d0d2c004a008c27aaee91170c786f6db8",
@@ -15,10 +34,29 @@
 			"revisionTime": "2016-12-15T10:56:53Z"
 		},
 		{
+			"checksumSHA1": "HWs193sOgLXaBk/qibGT/COWWcU=",
+			"path": "github.com/justone/crocker",
+			"revision": "f759222b1e1d9793d0560f5f9fbf5b9b2dcbafb4",
+			"revisionTime": "2017-04-24T04:34:09Z"
+		},
+		{
 			"checksumSHA1": "ynJSWoF6v+3zMnh9R0QmmG6iGV8=",
 			"path": "github.com/pkg/errors",
 			"revision": "248dadf4e9068a0b3e79f02ed0a610d935de5302",
 			"revisionTime": "2016-10-29T09:36:37Z"
+		},
+		{
+			"checksumSHA1": "zKKp5SZ3d3ycKe4EKMNT0BqAWBw=",
+			"origin": "github.com/stretchr/testify/vendor/github.com/pmezard/go-difflib/difflib",
+			"path": "github.com/pmezard/go-difflib/difflib",
+			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
+			"revisionTime": "2017-01-30T11:31:45Z"
+		},
+		{
+			"checksumSHA1": "JXUVA1jky8ZX8w09p2t5KLs97Nc=",
+			"path": "github.com/stretchr/testify/assert",
+			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
+			"revisionTime": "2017-01-30T11:31:45Z"
 		},
 		{
 			"checksumSHA1": "Y/FcWB2/xSfX1rRp7HYhktHNw8s=",
