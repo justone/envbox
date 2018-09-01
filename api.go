@@ -224,12 +224,11 @@ func (box *EnvBox) ClearKey() error {
 	err := ClearCredHelperKey()
 	if err == nil {
 		logrus.Debugf("helper key cleared")
-		return nil
 	} else if err != nil && err != helperNotFound {
 		return errors.Wrap(err, "unable to clear cred helper key")
 	}
 
-	logrus.Debugf("falling back on path based storage")
+	logrus.Debugf("clearing out path based storage")
 	keyPath, err := box.keyPath()
 	if err != nil {
 		return errors.Wrap(err, "unable to get key path")
