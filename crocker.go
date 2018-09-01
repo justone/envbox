@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker-credential-helpers/credentials"
 	"github.com/justone/crocker"
 )
@@ -18,13 +19,13 @@ func GetCredHelperKey() (string, error) {
 		return "", helperNotFound
 	}
 
-	// logrus.Debugf("found cred helper instance", cr)
+	logrus.Debugf("found cred helper instance %x", cr)
 	creds, err := cr.Get(url)
 	if err != nil {
 		return "", err
 	}
 
-	// logrus.Debugf("found cred helper creds", creds)
+	logrus.Debugf("found cred helper creds (url: %s, username: %s, secret: [redacted])", creds.ServerURL, creds.Username)
 	return creds.Secret, nil
 }
 
@@ -37,14 +38,14 @@ func StoreCredHelperKey(keys string) error {
 		return helperNotFound
 	}
 
-	// logrus.Debugf("found cred helper instance", cr)
+	logrus.Debugf("found cred helper instance %x", cr)
 	creds := &credentials.Credentials{url, "key", keys}
 	err = cr.Store(creds)
 	if err != nil {
 		return err
 	}
 
-	// logrus.Debugf("stored cred helper creds", creds)
+	logrus.Debugf("stored cred helper creds (url: %s, username: %s, secret: [redacted])", creds.ServerURL, creds.Username)
 	return nil
 }
 
@@ -57,12 +58,12 @@ func ClearCredHelperKey() error {
 		return helperNotFound
 	}
 
-	// logrus.Debugf("found cred helper instance", cr)
+	logrus.Debugf("found cred helper instance %x", cr)
 	err = cr.Erase(url)
 	if err != nil {
 		return err
 	}
 
-	// logrus.Debugf("cleared cred helper creds")
+	logrus.Debugf("cleared cred helper creds")
 	return nil
 }

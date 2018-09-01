@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/nacl/secretbox"
 )
@@ -163,12 +164,11 @@ func (box *EnvBox) ReadKey() (string, error) {
 
 	var key string
 
-	// fmt.Println("persistent mode detected, fetching key")
 	if helperKey, _ := GetCredHelperKey(); len(helperKey) > 0 {
-		// fmt.Println("found cred helper key, using that")
+		logrus.Debugf("found cred helper key, using that")
 		key = helperKey
 	} else if pathKeyData, err := ioutil.ReadFile(keyPath); err == nil {
-		// fmt.Println("found file key, using that")
+		logrus.Debugf("found file key, using that")
 		key = strings.TrimSpace(string(pathKeyData))
 	}
 
@@ -205,13 +205,13 @@ func (box *EnvBox) StoreKey(key string) error {
 
 	err := StoreCredHelperKey(key)
 	if err == nil {
-		// fmt.Println("helper key stored")
+		logrus.Debugf("helper key stored")
 		return nil
 	} else if err != nil && err != helperNotFound {
 		return errors.Wrap(err, "unable to set with helper")
 	}
 
-	// fmt.Println("falling back on path based storage")
+	logrus.Debugf("falling back on path based storage")
 	keyPath, err := box.keyPath()
 	if err != nil {
 		return errors.Wrap(err, "unable to get key path")
@@ -223,13 +223,13 @@ func (box *EnvBox) StoreKey(key string) error {
 func (box *EnvBox) ClearKey() error {
 	err := ClearCredHelperKey()
 	if err == nil {
-		// fmt.Println("helper key cleared")
+		logrus.Debugf("helper key cleared")
 		return nil
 	} else if err != nil && err != helperNotFound {
 		return errors.Wrap(err, "unable to clear cred helper key")
 	}
 
-	// fmt.Println("falling back on path based storage")
+	logrus.Debugf("falling back on path based storage")
 	keyPath, err := box.keyPath()
 	if err != nil {
 		return errors.Wrap(err, "unable to get key path")
