@@ -161,24 +161,30 @@ func (box *EnvBox) ReadKey() (string, error) {
 		return "", errors.Wrap(err, "unable to get key path")
 	}
 
-	if !box.FileExists(keyPath) {
-		key, err := box.PromptForKey()
+	var key string
+
+	// fmt.Println("persistent mode detected, fetching key")
+	if helperKey, _ := GetCredHelperKey(); len(helperKey) > 0 {
+		// fmt.Println("found cred helper key, using that")
+		key = helperKey
+	} else if pathKeyData, err := ioutil.ReadFile(keyPath); err == nil {
+		// fmt.Println("found file key, using that")
+		key = strings.TrimSpace(string(pathKeyData))
+	}
+
+	if len(key) == 0 {
+		promptedKey, err := box.PromptForKey()
 		if err != nil {
 			return "", errors.Wrap(err, "unable prompt for key")
 		}
 
-		err = box.StoreKey(key)
+		err = box.StoreKey(promptedKey)
 		if err != nil {
 			return "", errors.Wrap(err, "unable to set key")
 		}
-	}
 
-	data, err := ioutil.ReadFile(keyPath)
-	if err != nil {
-		return "", errors.Wrap(err, "unable to read keypath")
+		key = promptedKey
 	}
-
-	key := strings.TrimSpace(string(data))
 
 	return key, nil
 }
@@ -196,12 +202,39 @@ func (box *EnvBox) PromptForKey() (string, error) {
 }
 
 func (box *EnvBox) StoreKey(key string) error {
+
+	err := StoreCredHelperKey(key)
+	if err == nil {
+		// fmt.Println("helper key stored")
+		return nil
+	} else if err != nil && err != helperNotFound {
+		return errors.Wrap(err, "unable to set with helper")
+	}
+
+	// fmt.Println("falling back on path based storage")
 	keyPath, err := box.keyPath()
 	if err != nil {
 		return errors.Wrap(err, "unable to get key path")
 	}
 
 	return ioutil.WriteFile(keyPath, []byte(key), 0600)
+}
+
+func (box *EnvBox) ClearKey() error {
+	err := ClearCredHelperKey()
+	if err == nil {
+		// fmt.Println("helper key cleared")
+		return nil
+	} else if err != nil && err != helperNotFound {
+		return errors.Wrap(err, "unable to clear cred helper key")
+	}
+
+	// fmt.Println("falling back on path based storage")
+	keyPath, err := box.keyPath()
+	if err != nil {
+		return errors.Wrap(err, "unable to get key path")
+	}
+	return os.Remove(keyPath)
 }
 
 func (box *EnvBox) LoadEnvVars(key string) (map[string]EnvVar, error) {
