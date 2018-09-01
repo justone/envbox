@@ -59,3 +59,11 @@ To run a command that has an environment variable as an argument, quote it and r
 ```
 $ envbox run -e GITHUB_TOKEN -- bash -c 'some-command --that needs --github $GITHUB_TOKEN'
 ```
+
+# Key storage
+
+By default, envbox will store the key locally in a plaintext file, which moves
+the security concerns from bash history to system security.
+
+To aid in this, if the appropriate [docker credential helper](https://github.com/docker/docker-credential-helpers)
+is found in your $PATH, then that will be used to store the key.
