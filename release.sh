@@ -4,12 +4,12 @@ set -ex
 
 if [[ ! $(type -P gox) ]]; then
     echo "Error: gox not found."
-    echo "To fix: run 'go get github.com/mitchellh/gox', and/or add \$GOPATH/bin to \$PATH"
+    echo "To fix: run 'go install github.com/mitchellh/gox@latest', and/or add \$GOPATH/bin to \$PATH"
     exit 1
 fi
 
-if [[ ! $(type -P github-release) ]]; then
-    echo "Error: github-release not found."
+if [[ ! $(type -P gh) ]]; then
+    echo "Error: github cli not found."
     exit 1
 fi
 
@@ -48,8 +48,4 @@ git push --tags
 
 sleep 2
 
-github-release release $PRE_ARG --user justone --repo envbox --tag $VER --name $VER --description desc
-github-release upload --user justone --repo envbox --tag $VER --name envbox_darwin_amd64 --file envbox_darwin_amd64
-github-release upload --user justone --repo envbox --tag $VER --name envbox_linux_amd64 --file envbox_linux_amd64
-github-release upload --user justone --repo envbox --tag $VER --name envbox_linux_arm --file envbox_linux_arm
-github-release upload --user justone --repo envbox --tag $VER --name envbox_windows_amd64.exe --file envbox_windows_amd64.exe
+gh release create $VER -t $VER -F desc envbox_darwin_amd64 envbox_linux_amd64 envbox_linux_arm envbox_windows_amd64.exe
