@@ -30,7 +30,7 @@ git tag $VER
 echo "Building $VER"
 echo
 
-gox -ldflags "-X main.version=$VER" -osarch="darwin/amd64 linux/amd64 windows/amd64 linux/arm"
+gox -ldflags "-X main.version=$VER" -osarch="darwin/amd64 linux/amd64 windows/amd64 linux/arm64 darwin/arm64"
 
 echo "* " > desc
 echo "" >> desc
@@ -48,4 +48,4 @@ git push --tags
 
 sleep 2
 
-gh release create $VER -t $VER -F desc envbox_darwin_amd64 envbox_linux_amd64 envbox_linux_arm envbox_windows_amd64.exe
+gh release create $VER -t $VER -F desc envbox_*
